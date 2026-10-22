@@ -1,0 +1,21 @@
+[Desktop Entry]
+Type=Application
+Name=Caelestia Connect
+Name[pt_BR]=Caelestia Connect
+GenericName=Phone integration
+GenericName[pt_BR]=Integração com o celular
+Comment=Connect your phone: notifications, files, media, messages and more (KDE Connect compatible)
+Comment[pt_BR]=Conecte seu celular: notificações, arquivos, mídia, mensagens e mais (compatível com KDE Connect)
+Exec=@BIN@/caelestia-connect %F
+Icon=org.caelestia.Connect
+Terminal=false
+Categories=Network;Utility;GTK;
+Keywords=kde;connect;phone;android;sms;kdeconnect;celular;
+StartupNotify=true
+SingleMainWindow=true
+Actions=messages;
+
+[Desktop Action messages]
+Name=Messages
+Name[pt_BR]=Mensagens
+Exec=@BIN@/caelestia-connect --sms

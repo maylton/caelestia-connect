@@ -1,0 +1,32 @@
+[project]
+name = "caelestia-connect"
+version = "1.0.0"
+description = "KDE Connect compatible daemon and GTK4 client for the Caelestia shell"
+readme = "README.md"
+license = "GPL-3.0-or-later"
+requires-python = ">=3.12"
+dependencies = ["PyGObject>=3.50", "cryptography", "evdev"]
+
+[project.scripts]
+caelestia-connectd = "caelestia_connect.daemon:main"
+caelestia-connect-cli = "caelestia_connect.cli:main"
+
+[project.gui-scripts]
+caelestia-connect = "caelestia_connect.ui.app:main"
+
+[tool.setuptools.packages.find]
+include = ["caelestia_connect*"]
+
+[tool.setuptools.package-data]
+"caelestia_connect.ui" = ["style.css"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "B", "UP", "SIM", "C4", "PIE", "RET", "PERF"]
+ignore = ["SIM105"]
+
+[tool.ruff.lint.per-file-ignores]
+"caelestia_connect/locale_pt_br.py" = ["E501"]

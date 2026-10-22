@@ -1,0 +1,274 @@
+/* Caelestia Connect stylesheet. Colour placeholders are filled from the shell's Material 3
+   scheme by theme.py, which also makes every background slightly translucent. */
+
+:root {
+  --accent-bg-color: #%(primary)s;
+  --accent-fg-color: #%(onPrimary)s;
+  --accent-color: #%(primary)s;
+  --window-bg-color: alpha(#%(surface)s, 0.99);
+  --window-fg-color: #%(onSurface)s;
+  --view-bg-color: #%(surface)s;
+  --view-fg-color: #%(onSurface)s;
+  --headerbar-bg-color: #%(surface)s;
+  --headerbar-fg-color: #%(onSurface)s;
+  --headerbar-backdrop-color: #%(surface)s;
+  --headerbar-shade-color: transparent;
+  --sidebar-bg-color: #%(surfaceContainerLow)s;
+  --sidebar-fg-color: #%(onSurface)s;
+  --sidebar-backdrop-color: #%(surfaceContainerLow)s;
+  --sidebar-shade-color: transparent;
+  --secondary-sidebar-bg-color: #%(surfaceContainerLow)s;
+  --card-bg-color: #%(surfaceContainer)s;
+  --card-fg-color: #%(onSurface)s;
+  --dialog-bg-color: #%(surfaceContainerHigh)s;
+  --dialog-fg-color: #%(onSurface)s;
+  --popover-bg-color: #%(surfaceContainer)s;
+  --popover-fg-color: #%(onSurface)s;
+  --thumbnail-bg-color: #%(surfaceContainerHigh)s;
+  --destructive-bg-color: #%(error)s;
+  --destructive-fg-color: #%(onError)s;
+  --destructive-color: #%(error)s;
+  --success-bg-color: #%(success)s;
+  --success-color: #%(success)s;
+  --error-bg-color: #%(error)s;
+  --error-color: #%(error)s;
+  --border-color: #%(outlineVariant)s;
+  --window-radius: 20px;
+  --document-font-family: %(sans)s;
+  --font-family: %(sans)s;
+}
+
+window, .background { font-family: %(sans)s; }
+/* Not fully opaque on purpose: GTK would otherwise mark the surface opaque and Hyprland would skip
+   the blur behind the window (the compositor applies the shell's window opacity). */
+window.caelestia { background-color: alpha(#%(surface)s, 0.99); color: #%(onSurface)s; }
+
+/* Material Symbols, like the shell's MaterialIcon */
+.material-icon { font-family: "%(icon)s"; font-feature-settings: "liga"; font-weight: 400; }
+.material-icon.filled { font-variation-settings: "FILL" 1; }
+.icon-small { font-size: 18px; }
+.icon-medium { font-size: 22px; }
+.icon-large { font-size: 30px; }
+.icon-huge { font-size: 64px; }
+
+.headline { font-size: 26px; font-weight: 500; }
+.title-large { font-size: 20px; font-weight: 500; }
+.title-medium { font-size: 15px; font-weight: 500; }
+.body-small { font-size: 12px; color: #%(onSurfaceVariant)s; }
+.label-caps { font-size: 12px; font-weight: 500; color: #%(primary)s; letter-spacing: 0.4px; }
+.dim { color: #%(onSurfaceVariant)s; }
+.primary-text { color: #%(primary)s; }
+.error-text { color: #%(error)s; }
+
+/* Surfaces */
+.surface-card {
+  background-color: #%(surfaceContainer)s;
+  border-radius: 24px;
+  padding: 16px;
+}
+.surface-card.high { background-color: #%(surfaceContainerHigh)s; }
+.surface-card.tight { padding: 8px; }
+.hero {
+  background-color: #%(surfaceContainer)s;
+  border-radius: 32px;
+  padding: 24px;
+}
+.hero-icon {
+  background-color: #%(primaryContainer)s;
+  color: #%(onPrimaryContainer)s;
+  border-radius: 9999px;
+  min-width: 88px; min-height: 88px;
+}
+.avatar {
+  background-color: #%(secondaryContainer)s;
+  color: #%(onSecondaryContainer)s;
+  border-radius: 9999px;
+  min-width: 40px; min-height: 40px;
+}
+.avatar.connected { background-color: #%(primaryContainer)s; color: #%(onPrimaryContainer)s; }
+.avatar.offline { background-color: #%(surfaceContainerHighest)s; color: #%(onSurfaceVariant)s; }
+
+/* Pills / chips */
+.pill {
+  border-radius: 9999px;
+  padding: 4px 12px;
+  background-color: #%(surfaceContainerHighest)s;
+  color: #%(onSurfaceVariant)s;
+  font-size: 12px; font-weight: 500;
+}
+.pill.ok { background-color: #%(primaryContainer)s; color: #%(onPrimaryContainer)s; }
+.pill.warn { background-color: #%(errorContainer)s; color: #%(onErrorContainer)s; }
+
+/* Buttons: tonal pills and round icon buttons */
+button.tonal {
+  background-color: #%(secondaryContainer)s;
+  color: #%(onSecondaryContainer)s;
+  border-radius: 9999px;
+  padding: 8px 18px;
+  font-weight: 500;
+  box-shadow: none;
+}
+button.tonal:hover { background-color: alpha(#%(onSecondaryContainer)s, 0.18); }
+button.filled, button.suggested-action {
+  background-color: #%(primary)s;
+  color: #%(onPrimary)s;
+  border-radius: 9999px;
+  padding: 8px 20px;
+  font-weight: 500;
+}
+button.filled:hover, button.suggested-action:hover { background-color: alpha(#%(primary)s, 0.88); }
+button.destructive-action, button.danger {
+  background-color: #%(errorContainer)s;
+  color: #%(onErrorContainer)s;
+  border-radius: 9999px;
+  padding: 8px 18px;
+}
+button.round {
+  border-radius: 9999px;
+  min-width: 40px; min-height: 40px;
+  padding: 0;
+}
+button.round.tonal { padding: 0; }
+button.round.large { min-width: 56px; min-height: 56px; }
+
+/* Action tiles (quick actions grid) */
+button.tile {
+  background-color: #%(surfaceContainerHigh)s;
+  color: #%(onSurface)s;
+  border-radius: 20px;
+  padding: 14px 8px;
+  min-width: 96px;
+}
+button.tile:hover { background-color: #%(surfaceContainerHighest)s; }
+button.tile .material-icon { color: #%(primary)s; }
+button.tile.active { background-color: #%(primaryContainer)s; color: #%(onPrimaryContainer)s; }
+button.tile.active .material-icon { color: #%(onPrimaryContainer)s; }
+
+/* Sidebar device rows */
+.navigation-sidebar row, list.devices row {
+  border-radius: 9999px;
+  margin: 2px 8px;
+  padding: 6px 8px;
+}
+.navigation-sidebar row:selected, list.devices row:selected {
+  background-color: #%(secondaryContainer)s;
+  color: #%(onSecondaryContainer)s;
+}
+list.flat { background: transparent; }
+list.flat row { border-radius: 16px; }
+
+/* Media card */
+.media-art {
+  border-radius: 20px;
+  background-color: #%(surfaceContainerHighest)s;
+}
+scale.media trough { min-height: 6px; border-radius: 9999px; background-color: #%(surfaceContainerHighest)s; }
+scale.media highlight { border-radius: 9999px; background-color: #%(primary)s; }
+scale.media slider { min-width: 14px; min-height: 14px; margin: -5px; background-color: #%(primary)s; box-shadow: none; }
+
+/* Media card, mirrors the dashboard media tab */
+.media-card { padding: 20px 24px; border-radius: 28px; }
+.media-title { font-size: 22px; font-weight: 500; }
+.media-artist { font-size: 16px; font-weight: 500; color: #%(onSurfaceVariant)s; }
+.media-album { font-size: 16px; font-weight: 500; color: #%(secondary)s; }
+.media-time { font-size: 12px; font-weight: 500; color: #%(onSurfaceVariant)s; }
+button.media-btn {
+  min-height: 56px; min-width: 56px; padding: 0;
+  border-radius: 9999px; box-shadow: none;
+  transition: border-radius 250ms cubic-bezier(0.2, 0, 0, 1), background-color 200ms;
+}
+button.media-btn:active { border-radius: 8px; }
+button.media-tonal, button.media-side {
+  background-color: #%(secondaryContainer)s; color: #%(onSecondaryContainer)s;
+}
+button.media-side { min-width: 50px; }
+button.media-side.checked { background-color: #%(secondary)s; color: #%(onSecondary)s; border-radius: 12px; }
+button.media-tonal:hover, button.media-side:hover { background-color: mix(#%(secondaryContainer)s, #%(onSecondaryContainer)s, 0.12); }
+button.media-play { background-color: #%(primary)s; color: #%(onPrimary)s; }
+button.media-play.checked { border-radius: 16px; }
+button.media-play:hover { background-color: mix(#%(primary)s, #%(onPrimary)s, 0.1); }
+button.media-btn:disabled { background-color: alpha(#%(onSurface)s, 0.1); color: alpha(#%(onSurface)s, 0.38); }
+dropdown.player-pill > button {
+  border-radius: 9999px; padding: 4px 12px; min-height: 0;
+  background-color: #%(secondaryContainer)s; color: #%(onSecondaryContainer)s; font-weight: 500;
+}
+
+/* Messages */
+.bubble {
+  border-radius: 20px;
+  padding: 8px 14px;
+  background-color: #%(surfaceContainerHigh)s;
+}
+.bubble.out {
+  background-color: #%(primaryContainer)s;
+  color: #%(onPrimaryContainer)s;
+}
+entry.composer, .composer {
+  border-radius: 9999px;
+  background-color: #%(surfaceContainerHigh)s;
+  padding: 4px 14px;
+  min-height: 40px;
+}
+
+/* Touchpad */
+.touchpad {
+  background-color: #%(surfaceContainerHigh)s;
+  border-radius: 28px;
+  border: 1px solid #%(outlineVariant)s;
+}
+.touchpad.active { border-color: #%(primary)s; }
+
+/* Verification key */
+.verification-key {
+  font-family: "CaskaydiaCove NF", monospace;
+  font-size: 30px;
+  letter-spacing: 6px;
+  color: #%(primary)s;
+}
+
+progressbar trough { min-height: 6px; border-radius: 9999px; background-color: #%(surfaceContainerHighest)s; }
+progressbar progress { min-height: 6px; border-radius: 9999px; background-color: #%(primary)s; }
+
+switch { border-radius: 9999px; }
+switch:checked { background-color: #%(primary)s; }
+switch:checked slider { background-color: #%(onPrimary)s; }
+
+row.expander list.nested { background-color: #%(surfaceContainerLow)s; }
+
+button.expand-arrow .material-icon { transition: transform 250ms cubic-bezier(0.2, 0, 0, 1); }
+button.expand-arrow.expanded .material-icon { transform: rotate(180deg); }
+button.expand-arrow { min-width: 36px; min-height: 36px; margin-right: 4px; }
+
+/* Settings rows as in the shell's nexus (ConnectedRect): separate tiles, big radius at the ends */
+list.boxed-list, preferencesgroup list.boxed-list {
+  background-color: transparent; box-shadow: none; border: none;
+}
+list.boxed-list > row {
+  background-color: #%(surfaceContainer)s;
+  border-radius: 4px;
+  margin-bottom: 2px;
+  border: none;
+  box-shadow: none;
+  min-height: 56px;
+}
+list.boxed-list > row:first-child { border-top-left-radius: 28px; border-top-right-radius: 28px; }
+list.boxed-list > row:last-child { border-bottom-left-radius: 28px; border-bottom-right-radius: 28px; margin-bottom: 0; }
+list.boxed-list > row.activatable:hover { background-color: mix(#%(surfaceContainer)s, #%(onSurface)s, 0.06); }
+list.boxed-list > row.activatable:active { background-color: mix(#%(surfaceContainer)s, #%(onSurface)s, 0.1); }
+list.boxed-list > row separator, list.boxed-list > separator { opacity: 0; min-height: 0; }
+list.boxed-list > row.plugin-options-row,
+list.boxed-list > row.plugin-options-row:hover,
+list.boxed-list > row.plugin-options-row:selected {
+  background-color: transparent; padding: 0; margin: 0; border-radius: 0; min-height: 0;
+}
+list.boxed-list.plugin-options > row { background-color: #%(surfaceContainerLow)s; min-height: 48px; }
+row.c-row .title { font-size: 14px; }
+.c-value { font-size: 12px; color: #%(outline)s; }
+
+headerbar { box-shadow: none; }
+.toast { border-radius: 9999px; background-color: #%(inverseSurface)s; color: #%(inverseOnSurface)s; }
+viewswitcher button:checked, .view-switcher button:checked {
+  background-color: #%(secondaryContainer)s;
+  color: #%(onSecondaryContainer)s;
+  border-radius: 9999px;
+}
