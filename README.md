@@ -6,9 +6,11 @@ libraries.
 
 ![Overview](docs/screenshots/overview.png)
 
-| Messages | Remote input |
+| Messages | Settings |
 |---|---|
-| ![Messages](docs/screenshots/messages.png) | ![Remote input](docs/screenshots/remote.png) |
+| ![Messages](docs/screenshots/messages.png) | ![Settings](docs/screenshots/settings.png) |
+| **Remote input** | |
+| ![Remote input](docs/screenshots/remote.png) | |
 
 ## Features
 
