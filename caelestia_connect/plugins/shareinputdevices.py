@@ -1,5 +1,9 @@
 """Share this computer's mouse and keyboard with the device when the cursor leaves a screen edge."""
 
+import asyncio
+import time
+from collections import deque
+
 from ..desktop.inputcapture import BTN_LEFT, BTN_MIDDLE, BTN_RIGHT, InputCapture
 from ..i18n import _
 from ..utils import spawn
@@ -8,6 +12,9 @@ from .base import Plugin
 # Qt::Edge values, as sent in "exitEdge"
 QT_EDGES = {"top": 0x1, "left": 0x2, "right": 0x4, "bottom": 0x8}
 WHEEL_STEP = 15 / 120
+# A packet taking longer than this to be written means the link stalled: the pointer comes back
+STALL_TIMEOUT = 2
+MAX_QUEUED = 256
 
 
 class ShareInputDevicesPlugin(Plugin):
@@ -32,9 +39,14 @@ class ShareInputDevicesPlugin(Plugin):
         super().__init__(device)
         self.capture: InputCapture | None = None
         self.error = ""
+        self._queue: deque[dict] = deque()
+        self._sender: asyncio.Task | None = None
+        self._sending_since = 0.0
 
     async def connected(self):
         if self.capture:
+            # A new link: the device may have missed the start of the session and could never give it back
+            self._give_back()
             return
         capture = InputCapture(
             self.setting("edge"),
@@ -50,15 +62,17 @@ class ShareInputDevicesPlugin(Plugin):
             await capture.start()
             self.error = ""
         except Exception as e:
+            capture.stop()
+            if self.capture is not capture:
+                return  # unloaded while starting
             self.log.warning("Input capture unavailable: %s", e)
             self.error = str(e)
-            capture.stop()
             self.capture = None
         self.changed()
 
     def destroy(self):
         if self.capture:
-            self.capture.release()
+            self._give_back()
             self.capture.stop()
             self.capture = None
 
@@ -90,4 +104,32 @@ class ShareInputDevicesPlugin(Plugin):
             self._mouse(middleclick=True)
 
     def _mouse(self, **body) -> None:
-        self.send("kdeconnect.mousepad.request", body)
+        last = self._queue[-1] if self._queue else None
+        if last is not None and set(body) == set(last) == {"dx", "dy"}:
+            last["dx"] += body["dx"]  # merge movements the link has not caught up with
+            last["dy"] += body["dy"]
+        else:
+            self._queue.append(body)
+        stalled = self._sending_since and time.monotonic() - self._sending_since > STALL_TIMEOUT
+        if stalled or len(self._queue) > MAX_QUEUED:
+            self.log.warning("The device stopped receiving input, giving the pointer back")
+            self._give_back()
+        elif self._sender is None:
+            self._sender = spawn(self._send_queued(), name="shareinputdevices:send")
+
+    async def _send_queued(self) -> None:
+        try:
+            while self._queue:
+                body = self._queue.popleft()
+                self._sending_since = time.monotonic()
+                sent = await self.send_wait("kdeconnect.mousepad.request", body)
+                self._sending_since = 0.0
+                if not sent:
+                    self._give_back()
+        finally:
+            self._sender = None
+
+    def _give_back(self) -> None:
+        self._queue.clear()
+        if self.capture:
+            self.capture.release()

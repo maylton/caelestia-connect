@@ -1,6 +1,7 @@
 """Bluetooth multiplexing over a local socket pair: packets, long lines, payloads and flow control."""
 
 import asyncio
+import base64
 import os
 import socket
 import sys
@@ -8,9 +9,11 @@ import tempfile
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from caelestia_connect import bluetooth  # noqa: E402
+from caelestia_connect import bluetooth, crypto  # noqa: E402
 from caelestia_connect.packet import Packet, Payload  # noqa: E402
+from fake_android import make_identity  # noqa: E402
 
 
 async def pair() -> tuple[bluetooth.Multiplexer, bluetooth.Channel, bluetooth.Multiplexer, bluetooth.Channel]:
@@ -92,6 +95,14 @@ def test_disconnect_closes_links() -> None:
         assert closed == [link_b]
 
     asyncio.run(run())
+
+
+def test_android_certificate_pem() -> None:
+    # Android wraps the base64 body at 76 columns and leaves a blank line before the footer
+    _id, cert, _cert_path, _key_path = make_identity(tempfile.mkdtemp())
+    der = crypto.cert_der(cert)
+    pem = f"-----BEGIN CERTIFICATE-----\n{base64.encodebytes(der).decode()}\n-----END CERTIFICATE-----\n"
+    assert crypto.cert_der(crypto.cert_from_pem(pem)) == der
 
 
 if __name__ == "__main__":

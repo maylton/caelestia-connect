@@ -1,5 +1,6 @@
 """Synchronize the device's contacts as vCards (used to show names in SMS and calls)."""
 
+import hashlib
 import re
 from pathlib import Path
 
@@ -100,6 +101,8 @@ class ContactsPlugin(Plugin):
         safe = re.sub(r"[^A-Za-z0-9_.-]", "_", uid)
         if not safe or safe.startswith("."):
             return None
+        if len(safe) > 200:  # some address books use lookup keys longer than a file name may be
+            safe = hashlib.sha256(uid.encode()).hexdigest()
         return self.dir / f"{safe}.vcf"
 
     def handle(self, pkt):

@@ -252,6 +252,7 @@ class InputCapture:
         self._ei = None
         self._watch = 0
         self._keyboard: Keyboard | None = None
+        self.stopped = False
 
     @property
     def available(self) -> bool:
@@ -281,10 +282,21 @@ class InputCapture:
             ),
         )
         self.session = results["session_handle"]
+        self._check_stopped()
         await self._connect_eis()
         await self._update_zones()
 
     def stop(self) -> None:
+        self.stopped = True
+        self._teardown()
+
+    def _check_stopped(self) -> None:
+        """Called after every await while starting: stop() may have run meanwhile."""
+        if self.stopped:
+            self._teardown()  # an enabled session nobody listens to would swallow the pointer
+            raise RuntimeError("input capture stopped")
+
+    def _teardown(self) -> None:
         if self.portal:
             for sub in self._signals:
                 self.portal.bus.signal_unsubscribe(sub)
@@ -359,6 +371,9 @@ class InputCapture:
             None,
         )
         fd = fds.get(res.unpack()[0])
+        if self.stopped:
+            os.close(fd)
+            self._check_stopped()
         lib = self.ei_lib
         self._ei = lib.ei_new_receiver(None)
         lib.ei_configure_name(self._ei, b"Caelestia Connect")
@@ -374,6 +389,7 @@ class InputCapture:
             "GetZones",
             lambda token: GLib.Variant("(oa{sv})", (self.session, {"handle_token": GLib.Variant("s", token)})),
         )
+        self._check_stopped()
         self.zone_set = results["zone_set"]
         self.zones = [(int(x), int(y), int(w), int(h)) for w, h, x, y in results["zones"]]
         await self._set_barrier()
@@ -401,9 +417,11 @@ class InputCapture:
                 "(oa{sv}aa{sv}u)", (self.session, {"handle_token": GLib.Variant("s", token)}, [barrier], self.zone_set)
             ),
         )
+        self._check_stopped()
         if results.get("failed_barriers"):
             log.warning("The compositor rejected the pointer barrier %s", self.barrier)
         await self.portal.call("Enable", GLib.Variant("(oa{sv})", (self.session, {})), reply="()")
+        self._check_stopped()
         log.info("Input capture ready on the %s edge %s", self.edge, self.barrier)
 
     def _on_signal(self, _bus, _sender, _path, _iface, signal: str, params: GLib.Variant) -> None:

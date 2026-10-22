@@ -203,6 +203,8 @@ class LanLink:
         if self._closed:
             return False
         async with self._write_lock:
+            if self._closed:  # closed while this write was waiting
+                return False
             try:
                 await self.tls.get_output_stream().write_all_async(data, PRIO)
                 return True

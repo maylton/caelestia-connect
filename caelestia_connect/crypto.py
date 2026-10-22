@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import base64
+import binascii
 import datetime
 import hashlib
 import logging
@@ -121,7 +123,15 @@ def cert_from_der(der: bytes) -> x509.Certificate:
 
 
 def cert_from_pem(pem: str) -> x509.Certificate:
-    return x509.load_pem_x509_certificate(pem.encode())
+    try:
+        return x509.load_pem_x509_certificate(pem.encode())
+    except ValueError:
+        # Android sends its PEM with a blank line before the footer; decode the body ourselves
+        body = "".join(line.strip() for line in pem.splitlines() if line.strip() and not line.startswith("-----"))
+        try:
+            return cert_from_der(base64.b64decode(body, validate=True))
+        except binascii.Error as e:
+            raise ValueError("invalid certificate") from e
 
 
 def cert_to_pem(cert: x509.Certificate) -> str:

@@ -14,6 +14,7 @@ import logging
 import os
 import socket
 import struct
+import time
 import uuid
 from collections.abc import Callable
 from pathlib import Path
@@ -37,6 +38,9 @@ DEFAULT_CHANNEL = uuid.UUID("a0d0aaf4-1072-4d81-aa35-902a954b1266")
 PROFILE_PATH = "/org/caelestia/Connect/bluetooth"
 BUFFER_SIZE = 4096
 CONNECT_INTERVAL = 30
+# The Android app closes connections it accepted right after the handshake: a peer that does this only
+# keeps the links it opens itself (when its app starts or its network changes), so we stop dialing it
+SHORT_LINK = 10
 UNCLAIMED_PAYLOAD_TIMEOUT = 30
 
 MSG_VERSION, MSG_OPEN, MSG_CLOSE, MSG_READ, MSG_WRITE = range(5)
@@ -244,6 +248,7 @@ class BluetoothLink:
         self._write_lock = asyncio.Lock()
         self._upload_lock = asyncio.Lock()
         self._closed = False
+        self.dialed_at = 0.0  # set when we opened the connection
         self._task = spawn(self._read_loop(), name=f"bluetooth:{self.device_id}")
 
     @property
@@ -398,6 +403,7 @@ class BluetoothLinkProvider:
         self.links: dict[str, BluetoothLink] = {}
         self._addresses: set[str] = set()
         self._connecting: set[str] = set()
+        self._passive: set[str] = set()
         self._registration = 0
         self._task: asyncio.Task | None = None
 
@@ -470,7 +476,8 @@ class BluetoothLinkProvider:
                     dev = ifaces.get("org.bluez.Device1")
                     if not dev or not dev.get("Paired") or SERVICE_UUID not in dev.get("UUIDs", []):
                         continue
-                    if dev.get("Address") in self._addresses or path in self._connecting:
+                    address = dev.get("Address")
+                    if address in self._addresses or address in self._passive or path in self._connecting:
                         continue
                     spawn(self._connect(path), name="bluetooth:connect-device")
             except GLib.Error as e:
@@ -536,21 +543,20 @@ class BluetoothLinkProvider:
             log.info("Bluetooth identity exchange with %s failed: %s", address, e or type(e).__name__)
             mux.close()
             return
-        self._established(mux, channel, ident, address)
+        link = self._established(mux, channel, ident, address)
+        if link and initiator:
+            link.dialed_at = time.monotonic()
 
     def _identity(self) -> bytes:
         body = self.daemon.lan.identity_body(full=True)
         body["certificate"] = self.daemon.identity.cert_pem
         return Packet(const.PACKET_TYPE_IDENTITY, body).serialize()
 
-    def _established(self, mux: Multiplexer, channel: Channel, ident: Packet, address: str) -> None:
+    def _established(self, mux: Multiplexer, channel: Channel, ident: Packet, address: str) -> BluetoothLink | None:
         device_id = ident.get_str("deviceId")
         info = link_info(ident, device_id, ident.get_int("protocolVersion"))
         try:
-            pem = ident.get_str("certificate")
-            if not pem.startswith("-----BEGIN"):
-                pem = f"-----BEGIN CERTIFICATE-----\n{pem}\n-----END CERTIFICATE-----\n"
-            peer_cert = crypto.cert_from_pem(pem)
+            peer_cert = crypto.cert_from_pem(ident.get_str("certificate"))
         except ValueError:
             peer_cert = None
         if (
@@ -559,14 +565,15 @@ class BluetoothLinkProvider:
             or peer_cert is None
             or crypto.cert_common_name(peer_cert) != device_id
         ):
-            log.warning("Invalid Bluetooth identity from %s", address)
+            reason = "bad identity" if info is None else "bad certificate"
+            log.warning("Invalid Bluetooth identity from %s (%s)", address, reason)
             mux.close()
-            return
+            return None
         trusted = self.daemon.trusted.get(device_id)
         if trusted and not crypto.same_certificate(crypto.cert_from_pem(trusted["certificate"]), peer_cert):
             log.warning("Bluetooth device %s presented a different certificate", device_id)
             mux.close()
-            return
+            return None
         old = self.links.get(device_id)
         link = BluetoothLink(mux, channel, info, peer_cert, address)
         link.on_closed = self._link_closed
@@ -576,8 +583,12 @@ class BluetoothLinkProvider:
         if old is not None and not old.closed:
             old.on_closed = None
             old.close()
+        return link
 
     def _link_closed(self, link: BluetoothLink) -> None:
+        if link.dialed_at and time.monotonic() - link.dialed_at < SHORT_LINK:
+            log.info("%s closes the connections we open, waiting for it to connect instead", link.address)
+            self._passive.add(link.address)
         if self.links.get(link.device_id) is link:
             del self.links[link.device_id]
         self.daemon.link_lost(link)
