@@ -117,6 +117,12 @@ class Overview(Gtk.ScrolledWindow):
                     self._act("lockdevice", "set_locked", locked=not locked),
                 )
             )
+        if w.plugin_loaded(self.device, "virtualmonitor"):
+            monitor = d["state"].get("virtualmonitor", {})
+            if monitor.get("active"):
+                tiles.append(("desktop_access_disabled", _("Stop extending"), self._act("virtualmonitor", "stop")))
+            elif monitor.get("available"):
+                tiles.append(("desktop_windows", _("Extend display"), self._extend_display))
         if w.plugin_loaded(self.device, "findthisdevice") and d["state"].get("findthisdevice", {}).get("ringing"):
             tiles.append(("volume_off", _("Stop ringing"), self._act("findthisdevice", "stop")))
         sig = w.signature([(t[0], t[1]) for t in tiles])
@@ -126,6 +132,13 @@ class Overview(Gtk.ScrolledWindow):
         self.tiles.remove_all()
         for icon, text, cb in tiles:
             self.tiles.append(w.Tile(icon, text, cb))
+
+    def _extend_display(self) -> None:
+        def done(result):
+            if isinstance(result, dict) and result.get("error"):
+                self.app.toast(result["error"])
+
+        self.app.plugin(self.device["id"], "virtualmonitor", "start", callback=done)
 
     def _browse(self) -> None:
         sftp = self.device["state"].get("sftp", {})

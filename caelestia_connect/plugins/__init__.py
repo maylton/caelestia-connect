@@ -27,9 +27,11 @@ from .screensaver_inhibit import ScreensaverInhibitPlugin
 from .sendnotifications import SendNotificationsPlugin
 from .sftp import SftpPlugin
 from .share import SharePlugin
+from .shareinputdevices import ShareInputDevicesPlugin
 from .sms import SmsPlugin
 from .systemvolume import SystemVolumePlugin
 from .telephony import TelephonyPlugin
+from .virtualmonitor import VirtualMonitorPlugin
 
 ALL_PLUGINS: list[type[Plugin]] = [
     BatteryPlugin,
@@ -56,9 +58,11 @@ ALL_PLUGINS: list[type[Plugin]] = [
     SendNotificationsPlugin,
     SftpPlugin,
     SharePlugin,
+    ShareInputDevicesPlugin,
     SmsPlugin,
     SystemVolumePlugin,
     TelephonyPlugin,
+    VirtualMonitorPlugin,
 ]
 
 

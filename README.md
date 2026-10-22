@@ -14,6 +14,7 @@ libraries.
 
 ## Features
 
+- Discovery over UDP broadcast and mDNS, and connections over Wi-Fi or Bluetooth
 - Pairing with verification key
 - Battery and mobile signal of the phone
 - Phone notifications with actions, replies and dismissal
@@ -25,9 +26,11 @@ libraries.
 - Call notifications, muting, and pausing media during calls
 - Ring the phone, or let the phone ring this computer
 - Phone as touchpad and keyboard; remote control and keyboard for the phone
+- Sharing this computer's mouse and keyboard with the phone: move the cursor past a screen edge
 - Commands the phone can run on this computer
 - System volume, screen lock, presentation remote and drawing tablet
 - Browsing the phone's files
+- Another computer running KDE Connect as an extra monitor
 - Bar icon and popout in the Caelestia shell
 
 ## Installation
@@ -37,6 +40,7 @@ Dependencies on Arch Linux:
 ```sh
 sudo pacman -S --needed python-gobject libadwaita python-cryptography python-evdev wl-clipboard libpulse
 sudo pacman -S --needed sshfs gtk4-layer-shell   # optional: file browsing, presentation pointer
+sudo pacman -S --needed wayvnc freerdp           # optional: virtual monitor
 ```
 
 Install:
@@ -86,6 +90,8 @@ caelestia-connect-cli watch
 caelestia_connect/
   daemon.py, api.py   background service and the methods it exposes over IPC
   lan.py              discovery, TLS links and payload transfers
+  mdns.py             mDNS responder and browser
+  bluetooth.py        RFCOMM links over BlueZ, with KDE Connect's channel multiplexing
   device.py           pairing and packet routing
   plugins/            one module per feature
   desktop/            notifications, MPRIS, clipboard, audio, input, power and session
@@ -98,14 +104,20 @@ tests/                fake Android peer, end-to-end test and demo
 
 ```sh
 ruff check . && ruff format --check .
+python3 tests/test_mdns.py && python3 tests/test_bluetooth.py
 python3 tests/run_integration.py <local-ip>   # stop caelestia-connectd and close the app first
 python3 tests/demo.py                         # demo phone, no real device needed
 ```
 
-## Limitations
+## Notes
 
-- Discovery over mDNS and Bluetooth is not implemented.
-- Virtual monitor and input sharing between computers are not implemented.
+- **Bluetooth:** pair the phone with the computer in the system Bluetooth settings and enable Bluetooth in the
+  KDE Connect app settings. Wi-Fi is preferred when both are available; file browsing needs Wi-Fi.
+- **Mouse and keyboard sharing** is off by default: enable *Share mouse and keyboard* in the device settings
+  and choose the screen edge. The phone needs the *Mouse receiver* plugin and its accessibility permission.
+  Moving the pointer back past the phone's edge returns it; Ctrl+Alt+Esc always does.
+- **Virtual monitor** works between computers (the Android app has no support for it). Extending this
+  computer's display needs `wayvnc`; showing another computer's virtual monitor needs FreeRDP, Remmina or KRDC.
 
 ## License
 

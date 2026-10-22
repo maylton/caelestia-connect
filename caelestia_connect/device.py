@@ -14,9 +14,12 @@ from .utils import spawn
 
 if TYPE_CHECKING:
     from .daemon import Daemon
+    from .bluetooth import BluetoothLink
     from .lan import LanLink
     from .plugins.base import Plugin
     from .transfers import Transfer
+
+    Link = LanLink | BluetoothLink
 
 log = logging.getLogger(__name__)
 
@@ -36,7 +39,7 @@ class Device:
         self.incoming: set[str] = set()
         self.outgoing: set[str] = set()
         self.cert = None
-        self.links: list[LanLink] = []
+        self.links: list[Link] = []
         self.plugins: dict[str, Plugin] = {}
         self.config = DeviceConfig(device_id)
         self.pair_state = NOT_PAIRED
@@ -70,24 +73,21 @@ class Device:
 
     @property
     def address(self) -> str:
-        for link in self.links:
-            if not link.closed:
-                return link.address
-        return ""
+        link = self.link
+        return link.address if link else ""
 
     @property
-    def link(self) -> LanLink | None:
-        for link in reversed(self.links):
-            if not link.closed:
-                return link
-        return None
+    def link(self) -> Link | None:
+        """The preferred open link: LAN over Bluetooth, then the newest one."""
+        open_links = [link for link in self.links if not link.closed]
+        return max(reversed(open_links), key=lambda link: link.priority, default=None)
 
     def verification_key(self) -> str:
         if self.pair_state not in (REQUESTED, REQUESTED_BY_PEER) or self.cert is None:
             return ""
         return crypto.verification_key(self.daemon.identity.cert, self.cert, self.pair_timestamp)
 
-    def add_link(self, link: LanLink, replaced: LanLink | None = None) -> None:
+    def add_link(self, link: Link, replaced: Link | None = None) -> None:
         if replaced in self.links:
             self.links.remove(replaced)
         self.links = [existing for existing in self.links if not existing.closed]
@@ -114,7 +114,7 @@ class Device:
         self.reload_plugins(reconnected=True)
         self.daemon.state_changed()
 
-    def remove_link(self, link: LanLink) -> None:
+    def remove_link(self, link: Link) -> None:
         if link in self.links:
             self.links.remove(link)
         self.last_seen = time.time()

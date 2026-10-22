@@ -12,6 +12,7 @@ Handshake (protocol version 8), as implemented by KDE Connect:
 from __future__ import annotations
 
 import asyncio
+import ipaddress
 import json
 import logging
 import os
@@ -24,6 +25,7 @@ from typing import TYPE_CHECKING, Any
 from gi.repository import Gio, GLib
 
 from . import config, const, crypto
+from .mdns import MdnsService
 from .packet import Packet
 from .utils import run, spawn
 
@@ -78,6 +80,26 @@ async def _read_line(stream: Gio.DataInputStream, limit: int) -> bytes | None:
     return bytes(line)
 
 
+def link_info(ident: Packet, device_id: str, protocol_version: int) -> dict[str, Any] | None:
+    """The device description from an identity packet, or None if it is not a valid one."""
+    name = config.filter_device_name(ident.get_str("deviceName"))
+    if (
+        ident.type != const.PACKET_TYPE_IDENTITY
+        or not name
+        or ident.get_str("deviceId") != device_id
+        or ident.get_int("protocolVersion") != protocol_version
+    ):
+        return None
+    return {
+        "deviceId": device_id,
+        "deviceName": name,
+        "deviceType": ident.get_str("deviceType", "unknown"),
+        "protocolVersion": protocol_version,
+        "incomingCapabilities": [c for c in ident.get_list("incomingCapabilities") if isinstance(c, str)],
+        "outgoingCapabilities": [c for c in ident.get_list("outgoingCapabilities") if isinstance(c, str)],
+    }
+
+
 class TlsVerifier:
     """accept-certificate handler: anything while unpaired, only the stored cert once paired."""
 
@@ -113,6 +135,8 @@ def _tls_client(base: Gio.IOStream, cert: Gio.TlsCertificate, expected_der: byte
 
 class LanLink:
     """An established, encrypted connection to a remote device."""
+
+    priority = 20
 
     def __init__(
         self,
@@ -350,6 +374,7 @@ class LanLinkProvider:
         self._accept_task: asyncio.Task | None = None
         self._monitor_id = 0
         self._last_network_change = 0.0
+        self.mdns: MdnsService | None = None
 
     async def start(self) -> None:
         self.listener = Gio.SocketListener()
@@ -381,11 +406,26 @@ class LanLinkProvider:
             log.error("Could not bind UDP port %d: %s", const.UDP_PORT, e)
             sock.close()
 
+        self.mdns = MdnsService(
+            self.daemon.identity.device_id,
+            txt=lambda: {
+                "id": self.daemon.identity.device_id,
+                "name": self.daemon.settings.name,
+                "type": self.daemon.device_type,
+                "protocol": str(const.PROTOCOL_VERSION),
+            },
+            port=lambda: self.tcp_port,
+            on_found=self._mdns_found,
+        )
+        await self.mdns.start([iface for iface, _ in await self._local_ipv4()])
+
         monitor = Gio.NetworkMonitor.get_default()
         self._monitor_id = monitor.connect("network-changed", self._network_changed)
         await self.broadcast()
 
     def stop(self) -> None:
+        if self.mdns is not None:
+            self.mdns.stop()
         if self._monitor_id:
             Gio.NetworkMonitor.get_default().disconnect(self._monitor_id)
             self._monitor_id = 0
@@ -405,7 +445,7 @@ class LanLinkProvider:
             # Give DHCP a moment before announcing ourselves on the new network
             asyncio.get_event_loop().call_later(1.5, lambda: spawn(self.broadcast()))
 
-    def _identity_body(self, full: bool) -> dict[str, Any]:
+    def identity_body(self, full: bool) -> dict[str, Any]:
         d = self.daemon
         body: dict[str, Any] = {
             "deviceId": d.identity.device_id,
@@ -418,17 +458,17 @@ class LanLinkProvider:
             body["outgoingCapabilities"] = d.plugins_registry.outgoing_capabilities()
         return body
 
-    async def _local_ipv4(self) -> list[tuple[str, str]]:
-        """(address, broadcast) for every interface that is up."""
+    async def _local_ipv4(self) -> list[tuple[ipaddress.IPv4Interface, str]]:
+        """(interface address, broadcast address) for every interface that is up."""
         res = await run("ip", "-j", "-4", "addr", "show", "up", timeout=3)
-        out: list[tuple[str, str]] = []
+        out: list[tuple[ipaddress.IPv4Interface, str]] = []
         if res.ok:
             try:
                 for iface in json.loads(res.stdout):
                     if "LOOPBACK" in iface.get("flags", []):
                         continue
                     out.extend(
-                        (a["local"], a.get("broadcast", ""))
+                        (ipaddress.IPv4Interface(f"{a['local']}/{a.get('prefixlen', 24)}"), a.get("broadcast", ""))
                         for a in iface.get("addr_info", [])
                         if a.get("family") == "inet" and a.get("local")
                     )
@@ -439,17 +479,19 @@ class LanLinkProvider:
     async def broadcast(self, extra: list[str] | None = None) -> None:
         if not self.tcp_port or not self.discovery:
             return
-        body = self._identity_body(full=False)
+        body = self.identity_body(full=False)
         body["tcpPort"] = self.tcp_port
         data = Packet(const.PACKET_TYPE_IDENTITY, body).serialize()
         targets = {"255.255.255.255"}
         targets.update(self.daemon.settings.get("customDevices") or [])
         targets.update(extra or [])
         ifaces = await self._local_ipv4()
-        for _addr, bcast in ifaces:
+        if self.mdns is not None:
+            self.mdns.update_interfaces([iface for iface, _ in ifaces])
+        for _iface, bcast in ifaces:
             if bcast:
                 targets.add(bcast)
-        sources = [a for a, _ in ifaces] or ["0.0.0.0"]
+        sources = [str(iface.ip) for iface, _ in ifaces] or ["0.0.0.0"]
         for src in sources:
             s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
             try:
@@ -510,6 +552,13 @@ class LanLinkProvider:
             return
         spawn(self._connect(host, port, device_id, protocol_version), name=f"lan:connect:{host}")
 
+    def _mdns_found(self, host: str, port: int, device_id: str, protocol_version: int) -> None:
+        link = self.links.get(device_id)
+        if link is not None and not link.closed:
+            return  # responses repeat on every query: only connect to devices we lost
+        self.daemon.remember_address(device_id, host, port)
+        self.device_discovered(host, port, device_id, protocol_version)
+
     def _is_downgrade(self, device_id: str, protocol_version: int) -> bool:
         trusted = self.daemon.trusted.get(device_id)
         return bool(trusted) and int(trusted.get("protocolVersion") or 0) > protocol_version
@@ -526,7 +575,7 @@ class LanLinkProvider:
         # The connect timeout would otherwise apply to every later read and kill idle links
         conn.get_socket().set_timeout(0)
         _configure_socket(conn)
-        body = self._identity_body(full=False)
+        body = self.identity_body(full=False)
         body["targetDeviceId"] = device_id
         body["targetProtocolVersion"] = protocol_version
         try:
@@ -620,7 +669,7 @@ class LanLinkProvider:
 
         try:
             await tls.get_output_stream().write_all_async(
-                Packet(const.PACKET_TYPE_IDENTITY, self._identity_body(full=True)).serialize(), PRIO
+                Packet(const.PACKET_TYPE_IDENTITY, self.identity_body(full=True)).serialize(), PRIO
             )
             reader = Gio.DataInputStream.new(tls.get_input_stream())
             reader.props.close_base_stream = False
@@ -634,13 +683,8 @@ class LanLinkProvider:
             conn.close()
             return
 
-        name = config.filter_device_name(ident.get_str("deviceName"))
-        if (
-            ident.type != const.PACKET_TYPE_IDENTITY
-            or not name
-            or ident.get_str("deviceId") != device_id
-            or ident.get_int("protocolVersion") != protocol_version
-        ):
+        info = link_info(ident, device_id, protocol_version)
+        if info is None:
             log.warning("Device %s does not implement protocol version 8 correctly", device_id)
             conn.close()
             return
@@ -662,18 +706,10 @@ class LanLinkProvider:
             conn.close()
             return
 
-        info = {
-            "deviceId": device_id,
-            "deviceName": name,
-            "deviceType": ident.get_str("deviceType", "unknown"),
-            "protocolVersion": protocol_version,
-            "incomingCapabilities": [c for c in ident.get_list("incomingCapabilities") if isinstance(c, str)],
-            "outgoingCapabilities": [c for c in ident.get_list("outgoingCapabilities") if isinstance(c, str)],
-        }
         link = LanLink(self, tls, conn, info, peer_cert, host, reader)
         link.on_closed = self._link_closed
         self.links[device_id] = link
-        log.info("Connected to %s (%s) at %s", name, device_id, host)
+        log.info("Connected to %s (%s) at %s", info["deviceName"], device_id, host)
         self.daemon.remember_address(device_id, host, port)
         self.daemon.link_established(link, replaced=old)
         if old is not None and not old.closed:

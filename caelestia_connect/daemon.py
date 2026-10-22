@@ -8,7 +8,7 @@ import logging
 import os
 import signal
 import sys
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from gi.repository import Gio
 
@@ -23,10 +23,14 @@ from .desktop.system import Battery, Session
 from .device import NOT_PAIRED, PAIRED, REQUESTED, REQUESTED_BY_PEER, Device
 from .i18n import _
 from .ipc import IpcServer
-from .lan import LanLink, LanLinkProvider
+from .bluetooth import BluetoothLinkProvider
+from .lan import LanLinkProvider
 from .plugins import Registry
 from .transfers import Transfer, TransferManager
 from .utils import Debouncer, spawn, which
+
+if TYPE_CHECKING:
+    from .device import Link
 
 log = logging.getLogger("caelestia-connect")
 
@@ -56,6 +60,7 @@ class Daemon:
         self.transfers = TransferManager(self.state_changed, self._transfer_finished)
         self.devices: dict[str, Device] = {}
         self.lan = LanLinkProvider(self, discovery)
+        self.bluetooth = BluetoothLinkProvider(self) if discovery else None
         self.api = Api(self)
         self.ipc = IpcServer(self.api.handle)
         self._broadcast = Debouncer(0.08, self._send_state)
@@ -76,6 +81,8 @@ class Daemon:
         await self.session.start()
         await self.ipc.start()
         await self.lan.start()
+        if self.bluetooth:
+            await self.bluetooth.start()
         spawn(self._rebroadcast_loop(), name="rebroadcast")
 
     async def _rebroadcast_loop(self) -> None:
@@ -115,6 +122,8 @@ class Daemon:
         for d in self.devices.values():
             d.destroy()
         self.lan.stop()
+        if self.bluetooth:
+            self.bluetooth.stop()
         self.ipc.stop()
         self.clipboard.stop()
         self.vinput.close()
@@ -123,13 +132,13 @@ class Daemon:
     async def wait(self) -> None:
         await self._stopping.wait()
 
-    def link_established(self, link: LanLink, replaced: LanLink | None) -> None:
+    def link_established(self, link: Link, replaced: Link | None) -> None:
         device = self.devices.get(link.device_id)
         if device is None:
             device = self.devices[link.device_id] = Device(self, link.device_id)
         device.add_link(link, replaced)
 
-    def link_lost(self, link: LanLink) -> None:
+    def link_lost(self, link: Link) -> None:
         device = self.devices.get(link.device_id)
         if device is None:
             return
