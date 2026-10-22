@@ -9,6 +9,11 @@ from . import widgets as w
 from .device_page import DevicePage
 
 
+def _other_app_here(d: dict) -> bool:
+    """Another KDE Connect program on this computer: not something to pair with, unless it asks."""
+    return bool(d.get("sameHost")) and not d["paired"] and d["pairState"] != "requestedByPeer"
+
+
 class DeviceRow(Gtk.ListBoxRow):
     def __init__(self, device: dict) -> None:
         super().__init__()
@@ -215,7 +220,7 @@ class MainWindow(Adw.ApplicationWindow):
         self.self_status.set_label(_("Visible as {name}").format(name=me["name"]))
         self.self_icon.set_icon(w.device_icon(me["type"]))
         self.empty_title.set_label(_("Connect your phone"))
-        devices = state["devices"]
+        devices = [d for d in state["devices"] if not _other_app_here(d)]
         order = [d["id"] for d in devices]
         if order != self._device_order:
             self._device_order = order

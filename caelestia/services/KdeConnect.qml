@@ -13,7 +13,8 @@ Singleton {
     readonly property var devices: state.devices ?? []
     readonly property var paired: devices.filter(d => d.paired)
     readonly property var connected: devices.filter(d => d.paired && d.reachable)
-    readonly property var available: devices.filter(d => !d.paired && d.reachable)
+    // sameHost: another KDE Connect program running on this computer
+    readonly property var available: devices.filter(d => !d.paired && d.reachable && !d.sameHost)
     readonly property var pairRequests: devices.filter(d => d.pairState === "requestedByPeer")
     readonly property var primary: connected[0] ?? paired[0] ?? null
     readonly property var transfers: (state.transfers ?? []).filter(t => t.state === "pending" || t.state === "running")

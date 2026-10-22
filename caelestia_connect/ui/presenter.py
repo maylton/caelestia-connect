@@ -1,6 +1,7 @@
 """Laser pointer overlay for the presentation remote (a layer-shell surface over all windows).
 
-Reads JSON lines on stdin: {"dx": float, "dy": float} moves the dot, {"stop": true} quits.
+Reads JSON lines on stdin: {"dx": float, "dy": float} moves the dot, {"stop": true} hides it. Quits at the
+end of the input.
 """
 
 from __future__ import annotations
@@ -11,7 +12,7 @@ import threading
 
 import gi
 
-from gi.repository import Gdk, GLib, Gtk
+from gi.repository import Gdk, Gio, GLib, Gtk
 
 try:
     gi.require_version("Gtk4LayerShell", "1.0")
@@ -24,7 +25,8 @@ HIDE_AFTER_MS = 600
 
 class Pointer(Gtk.Application):
     def __init__(self) -> None:
-        super().__init__(application_id="org.caelestia.Connect.Presenter")
+        # Not unique: a new overlay must never hand off to one that is still shutting down
+        super().__init__(application_id="org.caelestia.Connect.Presenter", flags=Gio.ApplicationFlags.NON_UNIQUE)
         self.x = self.y = 0.5
         self.visible = False
         self._hide_id = 0
@@ -80,7 +82,7 @@ class Pointer(Gtk.Application):
 
     def _handle(self, msg: dict) -> bool:
         if msg.get("stop"):
-            self.quit()
+            self._hide()
             return False
         width = self.area.get_width() or 1
         height = self.area.get_height() or 1
@@ -95,6 +97,8 @@ class Pointer(Gtk.Application):
         return False
 
     def _hide(self) -> bool:
+        if self._hide_id:
+            GLib.source_remove(self._hide_id)
         self._hide_id = 0
         self.visible = False
         self.area.queue_draw()

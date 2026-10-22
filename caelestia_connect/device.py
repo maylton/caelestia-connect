@@ -352,6 +352,8 @@ class Device:
             "pairError": self.pair_error,
             "verificationKey": self.verification_key(),
             "address": self.address,
+            # Another KDE Connect program running on this computer
+            "sameHost": self.address in self.daemon.lan.local_addresses,
             "protocolVersion": self.protocol_version,
             "lastSeen": int(self.last_seen),
             "fingerprint": crypto.certificate_fingerprint(self.cert) if self.cert else "",

@@ -377,6 +377,7 @@ class LanLinkProvider:
         self._monitor_id = 0
         self._last_network_change = 0.0
         self.mdns: MdnsService | None = None
+        self.local_addresses: set[str] = {"127.0.0.1", "::1"}
 
     async def start(self) -> None:
         self.listener = Gio.SocketListener()
@@ -476,6 +477,7 @@ class LanLinkProvider:
                     )
             except ValueError:
                 pass
+        self.local_addresses = {"127.0.0.1", "::1", *(str(iface.ip) for iface, _ in out)}
         return out
 
     async def broadcast(self, extra: list[str] | None = None) -> None:
