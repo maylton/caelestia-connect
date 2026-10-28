@@ -82,6 +82,13 @@ class Device:
         open_links = [link for link in self.links if not link.closed]
         return max(reversed(open_links), key=lambda link: link.priority, default=None)
 
+    def bluetooth_address(self) -> str:
+        """The device's Bluetooth address, if it was ever linked over Bluetooth."""
+        for link in self.links:
+            if link.address.count(":") == 5:  # LAN links have an IP address
+                return link.address.upper()
+        return str(self.config.plugin_settings("phoneaudio").get("address", ""))
+
     def verification_key(self) -> str:
         if self.pair_state not in (REQUESTED, REQUESTED_BY_PEER) or self.cert is None:
             return ""
@@ -352,6 +359,7 @@ class Device:
             "pairError": self.pair_error,
             "verificationKey": self.verification_key(),
             "address": self.address,
+            "bluetoothAddress": self.bluetooth_address(),
             # Another KDE Connect program running on this computer
             "sameHost": self.address in self.daemon.lan.local_addresses,
             "protocolVersion": self.protocol_version,

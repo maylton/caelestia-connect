@@ -16,10 +16,16 @@ Singleton {
     // sameHost: another KDE Connect program running on this computer
     readonly property var available: devices.filter(d => !d.paired && d.reachable && !d.sameHost)
     readonly property var pairRequests: devices.filter(d => d.pairState === "requestedByPeer")
+    readonly property var bluetoothAddresses: paired.map(d => d.bluetoothAddress).filter(a => !!a)
     readonly property var primary: connected[0] ?? paired[0] ?? null
     readonly property var transfers: (state.transfers ?? []).filter(t => t.state === "pending" || t.state === "running")
     // The bar icon is only shown once something is paired or wants to pair
     readonly property bool shown: running && (paired.length > 0 || pairRequests.length > 0)
+
+    // The bluetooth status lists connected devices; a paired phone already has its own icon
+    function isPairedPhone(address: string): bool {
+        return bluetoothAddresses.includes((address ?? "").toUpperCase());
+    }
 
     readonly property string appPath: `${Quickshell.env("HOME")}/.local/bin/caelestia-connect`
     readonly property string socketPath: `${Quickshell.env("XDG_RUNTIME_DIR")}/caelestia-connect/ipc.sock`

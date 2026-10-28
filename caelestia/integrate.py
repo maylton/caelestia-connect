@@ -77,9 +77,28 @@ MODEL_NEW = (
 )
 
 
+BLUETOOTH_IMPORT = """// caelestia-connect: begin
+import qs.services
+// caelestia-connect: end
+"""
+BLUETOOTH_ORIG = "values: Bluetooth.devices.values.filter(d => d.state !== BluetoothDeviceState.Disconnected)"
+BLUETOOTH_NEW = (
+    "values: Bluetooth.devices.values.filter(d => d.state !== BluetoothDeviceState.Disconnected"
+    " && !KdeConnect.isPairedPhone(d.address)) // caelestia-connect"
+)
+
+
 def strip_blocks(text: str) -> str:
     text = re.sub(r"[ \t]*// caelestia-connect: begin.*?// caelestia-connect: end\n\n?", "", text, flags=re.S)
-    return text.replace(MODEL_NEW, MODEL_ORIG)
+    return text.replace(MODEL_NEW, MODEL_ORIG).replace(BLUETOOTH_NEW, BLUETOOTH_ORIG)
+
+
+def patch_bluetooth_status(text: str) -> str:
+    text = strip_blocks(text)
+    if BLUETOOTH_ORIG not in text or "import qs.components\n" not in text:
+        raise RuntimeError("BluetoothStatus.qml: connected devices model not found (shell version not supported)")
+    text = text.replace(BLUETOOTH_ORIG, BLUETOOTH_NEW)
+    return text.replace("import qs.components\n", "import qs.components\n" + BLUETOOTH_IMPORT, 1)
 
 
 def patch_status_icons(text: str) -> str:
@@ -119,7 +138,8 @@ def main() -> int:
     shell = args.shell.expanduser().resolve()
     status = shell / "modules/bar/components/StatusIcons.qml"
     content = shell / "modules/bar/popouts/Content.qml"
-    if not status.exists() or not content.exists():
+    bluetooth = shell / "modules/bar/components/status/BluetoothStatus.qml"
+    if not status.exists() or not content.exists() or not bluetooth.exists():
         print(f"{shell} does not look like a Caelestia shell", file=sys.stderr)
         return 1
     if str(shell).startswith(("/etc/", "/usr/")):
@@ -127,15 +147,19 @@ def main() -> int:
         return 1
 
     if args.uninstall:
-        new_status, new_content = strip_blocks(status.read_text()), strip_blocks(content.read_text())
+        patched = {path: strip_blocks(path.read_text()) for path in (status, content, bluetooth)}
     else:
-        new_status, new_content = patch_status_icons(status.read_text()), patch_content(content.read_text())
+        patched = {
+            status: patch_status_icons(status.read_text()),
+            content: patch_content(content.read_text()),
+            bluetooth: patch_bluetooth_status(bluetooth.read_text()),
+        }
 
     if args.dry_run:
-        print(new_status if "--status" in sys.argv else "dry run ok")
+        print(patched[status] if "--status" in sys.argv else "dry run ok")
         return 0
 
-    for path, text in ((status, new_status), (content, new_content)):
+    for path, text in patched.items():
         backup = path.with_suffix(path.suffix + ".orig")
         if not backup.exists() and not args.uninstall:
             shutil.copy2(path, backup)
