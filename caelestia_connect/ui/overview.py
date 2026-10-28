@@ -165,8 +165,13 @@ class Overview(Gtk.ScrolledWindow):
             on_seek=lambda ms: self.app.plugin(dev(), "mprisremote", "set_position", position=ms),
             on_select=lambda name: self.app.plugin(dev(), "mprisremote", "select_player", player=name),
             on_volume=lambda v: self.app.plugin(dev(), "mprisremote", "set_volume", volume=v),
+            on_output=lambda: self.app.plugin(dev(), "phoneaudio", "toggle", callback=self._output_changed),
         )
         self.media.append(self.media_card)
+
+    def _output_changed(self, result) -> None:
+        if isinstance(result, dict) and result.get("error"):
+            self.app.toast(result["error"])
 
     def _update_media(self) -> None:
         st = self.device["state"].get("mprisremote")
@@ -175,6 +180,7 @@ class Overview(Gtk.ScrolledWindow):
         self.media.set_visible(visible)
         if visible:
             self.media_card.update(players, st.get("current") or players[0]["name"])
+            self.media_card.update_output(self.device["state"].get("phoneaudio"))
 
     def _update_notifications(self) -> None:
         items = self.device["state"].get("notifications", {}).get("items", [])

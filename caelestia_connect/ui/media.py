@@ -129,7 +129,7 @@ class CoverVisualiser(Gtk.DrawingArea):
 
 
 class MediaCard(Gtk.Box):
-    def __init__(self, app, on_action, on_seek, on_select, on_volume) -> None:
+    def __init__(self, app, on_action, on_seek, on_select, on_volume, on_output) -> None:
         super().__init__(spacing=24)
         self.add_css_class("surface-card")
         self.add_css_class("media-card")
@@ -138,6 +138,7 @@ class MediaCard(Gtk.Box):
         self.on_seek_ms = on_seek
         self.on_select = on_select
         self.on_volume = on_volume
+        self.on_output = on_output
         self.length = 0
         self.position = 0
         self.stamp = time.monotonic()
@@ -151,6 +152,10 @@ class MediaCard(Gtk.Box):
         self.title = w.label(css=["media-title"], ellipsize=True)
         self.title.set_hexpand(True)
         top.append(self.title)
+        self.output = Gtk.Button(valign=Gtk.Align.START, visible=False)
+        self.output.add_css_class("player-pill")
+        self.output.connect("clicked", lambda *_: self.on_output())
+        top.append(self.output)
         self.player_menu = Gtk.DropDown(model=Gtk.StringList(), valign=Gtk.Align.START)
         self.player_menu.add_css_class("player-pill")
         self._handler = self.player_menu.connect("notify::selected", self._selected)
@@ -235,6 +240,18 @@ class MediaCard(Gtk.Box):
             if self.length and not self.slider.dragging:
                 self.slider.set_value(pos / self.length, animate=False)
         return True
+
+    def update_output(self, state: dict | None) -> None:
+        """The button that moves the phone's sound between the phone and this computer."""
+        self.output.set_visible(bool(state and state.get("available")))
+        if not self.output.get_visible():
+            return
+        on_computer = state["onComputer"]
+        box = Gtk.Box(spacing=6)
+        box.append(w.Icon("computer" if on_computer else "smartphone", "small"))
+        box.append(w.label(_("On this computer") if on_computer else _("On the phone")))
+        self.output.set_child(box)
+        self.output.set_tooltip_text(_("Play on the phone") if on_computer else _("Play on this computer"))
 
     def update(self, players: list[dict], current: str) -> None:
         names = [p["name"] for p in players]

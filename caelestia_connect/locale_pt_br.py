@@ -309,4 +309,12 @@ CATALOG: dict[str, str] = {
     "The other computer must be connected over the network": "O outro computador precisa estar conectado pela rede",
     "Extend display": "Estender tela",
     "Stop extending": "Parar de estender",
+    "Audio output": "Saída de áudio",
+    "Choose whether the phone's sound plays on the phone or on this computer": "Escolha se o som do celular toca no celular ou neste computador",
+    "On this computer": "No computador",
+    "On the phone": "No celular",
+    "Play on this computer": "Tocar neste computador",
+    "Play on the phone": "Tocar no celular",
+    "Phone not found": "Celular não encontrado",
+    "Could not change the audio output. Check that Bluetooth is on and that Media audio is enabled for this computer in the phone's Bluetooth settings.": "Não foi possível mudar a saída de áudio. Verifique se o Bluetooth está ligado e se o Áudio de mídia está ativado para este computador nas configurações de Bluetooth do celular.",
 }

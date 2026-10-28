@@ -25,6 +25,7 @@ libraries.
 - SMS and MMS conversations, with contact names
 - Call notifications, muting, and pausing media during calls
 - Ring the phone, or let the phone ring this computer
+- Choose whether the phone's sound plays on the phone or on this computer (over Bluetooth)
 - Phone as touchpad and keyboard; remote control and keyboard for the phone
 - Sharing this computer's mouse and keyboard with the phone: move the cursor past a screen edge
 - Commands the phone can run on this computer
@@ -113,6 +114,8 @@ python3 tests/demo.py                         # demo phone, no real device neede
 
 - **Bluetooth:** pair the phone with the computer in the system Bluetooth settings and enable Bluetooth in the
   KDE Connect app settings. Wi-Fi is preferred when both are available; file browsing needs Wi-Fi.
+- **Audio output** needs the phone paired over Bluetooth with *Media audio* enabled for this computer. The
+  button in the media card connects or disconnects the phone's audio; PipeWire does the routing.
 - **Mouse and keyboard sharing** is off by default: enable *Share mouse and keyboard* in the device settings
   and choose the screen edge. The phone needs the *Mouse receiver* plugin and its accessibility permission.
   Moving the pointer back past the phone's edge returns it; Ctrl+Alt+Esc always does.

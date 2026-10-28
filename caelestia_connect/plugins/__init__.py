@@ -16,6 +16,7 @@ from .mpriscontrol import MprisControlPlugin
 from .mprisremote import MprisRemotePlugin
 from .notifications import NotificationsPlugin
 from .pausemusic import PauseMusicPlugin
+from .phoneaudio import PhoneAudioPlugin
 from .ping import PingPlugin
 from .presenter import PresenterPlugin
 from .remotecommands import RemoteCommandsPlugin
@@ -47,6 +48,7 @@ ALL_PLUGINS: list[type[Plugin]] = [
     MprisRemotePlugin,
     NotificationsPlugin,
     PauseMusicPlugin,
+    PhoneAudioPlugin,
     PingPlugin,
     PresenterPlugin,
     RemoteCommandsPlugin,
