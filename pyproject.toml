@@ -1,6 +1,6 @@
 [project]
 name = "caelestia-connect"
-version = "1.0.0"
+version = "1.1.0"
 description = "KDE Connect compatible daemon and GTK4 client for the Caelestia shell"
 readme = "README.md"
 license = "GPL-3.0-or-later"
