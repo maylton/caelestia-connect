@@ -1,5 +1,6 @@
 """Choose whether the phone's sound plays on the phone or on this computer (over Bluetooth)."""
 
+import asyncio
 import re
 
 from gi.repository import GLib
@@ -7,6 +8,9 @@ from gi.repository import GLib
 from ..desktop.phoneaudio import BluezAudio, PhoneAudio
 from ..i18n import _
 from .base import Plugin, action
+
+# Android pauses the music when its Bluetooth output goes away; give it time to do so before resuming
+RESUME_DELAY = 1.2
 
 MAC = re.compile(r"^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$")
 
@@ -66,6 +70,7 @@ class PhoneAudioPlugin(Plugin):
         phone = self._phone()
         if phone is None:
             return {"error": _("Phone not found")}
+        was_playing = None if on_computer else self._playing_player()
         try:
             await self.audio.set_on_computer(phone, bool(on_computer))
         except GLib.Error as e:
@@ -76,4 +81,19 @@ class PhoneAudioPlugin(Plugin):
                     "enabled for this computer in the phone's Bluetooth settings."
                 )
             }
+        if was_playing:
+            await self._resume(was_playing)
         return {}
+
+    def _playing_player(self) -> str | None:
+        remote = self.device.plugin("mprisremote")
+        return next((p.name for p in remote.players.values() if p.playing), None) if remote else None
+
+    async def _resume(self, player: str) -> None:
+        """Keep the music going on the phone's own speaker."""
+        await asyncio.sleep(RESUME_DELAY)
+        remote = self.device.plugin("mprisremote")
+        paused = remote and player in remote.players and not remote.players[player].playing
+        self.log.info("Resume check: %s is %s", player, "paused" if paused else "still playing")
+        if paused:
+            remote.media_action("Play", player)
