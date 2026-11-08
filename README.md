@@ -27,6 +27,8 @@ libraries.
 - Ring the phone, or let the phone ring this computer
 - Choose whether the phone's sound plays on the phone or on this computer (over Bluetooth)
 - Phone as touchpad and keyboard; remote control and keyboard for the phone
+- Mirror and control an Android phone or tablet in a scrcpy window
+- View the phone camera and expose it as a webcam on this computer
 - Sharing this computer's mouse and keyboard with the phone: move the cursor past a screen edge
 - Commands the phone can run on this computer
 - System volume, screen lock, presentation remote and drawing tablet
@@ -41,6 +43,7 @@ Dependencies on Arch Linux:
 ```sh
 sudo pacman -S --needed python-gobject libadwaita python-cryptography python-evdev wl-clipboard libpulse
 sudo pacman -S --needed sshfs gtk4-layer-shell   # optional: file browsing, presentation pointer
+sudo pacman -S --needed scrcpy android-tools android-udev # optional: Android screen mirroring
 sudo pacman -S --needed wayvnc freerdp           # optional: virtual monitor
 ```
 
@@ -61,6 +64,27 @@ sudo ufw allow 1714:1764/udp && sudo ufw allow 1714:1764/tcp
 ```
 
 Uninstall with `./install.sh --uninstall` (pairing data in `~/.config/caelestia-connect` is kept).
+
+## Android screen mirroring
+
+On your paired phone or tablet's **Overview**, select **Mirror screen**, choose an Android device,
+then select **Start mirroring**. scrcpy opens a separate window with mouse and keyboard control.
+
+For USB, enable **USB debugging** in Android Developer options, plug in with a data cable, and
+accept the authorization prompt on the phone. For Wi-Fi, first connect through Android
+**Wireless debugging** using [scrcpy's wireless connection guide](https://github.com/Genymobile/scrcpy/blob/master/doc/connection.md).
+The picker lists authorized devices from `adb devices`. Android debugging authorization is separate
+from KDE Connect pairing, so check the serial when several devices are connected.
+
+## Phone camera and webcam
+
+Choose **Phone camera** in the phone's Overview, select the front or back camera, and start the preview. This uses the same ADB connection as screen mirroring and requires Android 12 or newer. To make the camera available to other applications on this computer, first create a virtual webcam with:
+
+```sh
+sudo modprobe v4l2loopback video_nr=2 card_label="Caelestia Phone Camera" exclusive_caps=1
+```
+
+Select an unused video number if `/dev/video2` is occupied. Run `python -m caelestia_connect.ui.webcam ANDROID_SERIAL /dev/video2` from the installation directory with its Python environment. Select **Caelestia Phone Camera** in Google Meet or another video application. The background process starts the selected front or back camera when a client captures video and stops it when capture ends. A second loopback device named `Caelestia Camera Input` enables fitting rotated video inside a fixed frame. Without it, direct output may crop rotated video. The virtual devices must be set up again after reboot unless configured to load automatically. Rotation of the camera preview uses Hyprland-specific commands. The webcam accepts SIGUSR1 and SIGUSR2 to rotate left and right.
 
 ## Shell integration
 

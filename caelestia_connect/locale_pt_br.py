@@ -160,6 +160,25 @@ CATALOG: dict[str, str] = {
     "Clipboard sent": "Área de transferência enviada",
     "Browse files": "Arquivos",
     "Remote input": "Controle remoto",
+    "Mirror screen": "Espelhar tela",
+    "Install scrcpy and Android platform tools (adb) to mirror your phone.":
+        "Instale o scrcpy e as ferramentas da plataforma Android (adb) para espelhar seu celular.",
+    "Looking for Android devices…": "Procurando dispositivos Android…",
+    "Could not list Android devices. Check that adb is working and try again.":
+        "Não foi possível listar os dispositivos Android. Verifique se o adb está funcionando e tente novamente.",
+    "Unlock your phone and allow USB debugging, then reopen Mirror screen.":
+        "Desbloqueie o celular e permita a depuração USB. Depois, reabra Espelhar tela.",
+    "No authorized Android device found. Connect with USB debugging or Android Wireless debugging, "
+    "then reopen Mirror screen.":
+        "Nenhum dispositivo Android autorizado foi encontrado. Conecte com depuração USB ou depuração sem fio "
+        "do Android. Depois, reabra Espelhar tela.",
+    "Choose the Android device to view and control in a separate window.":
+        "Escolha o dispositivo Android para ver e controlar em uma janela separada.",
+    "Android device": "Dispositivo Android",
+    "Start mirroring": "Iniciar espelhamento",
+    "Could not start scrcpy.": "Não foi possível iniciar o scrcpy.",
+    "Screen mirroring failed. Check the Android debugging connection and try again.":
+        "O espelhamento de tela falhou. Verifique a conexão de depuração do Android e tente novamente.",
     "Messages": "Mensagens",
     "Unlock": "Desbloquear",
     "Lock": "Bloquear",
