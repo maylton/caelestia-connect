@@ -161,24 +161,30 @@ CATALOG: dict[str, str] = {
     "Browse files": "Arquivos",
     "Remote input": "Controle remoto",
     "Mirror screen": "Espelhar tela",
-    "Install scrcpy and Android platform tools (adb) to mirror your phone.":
-        "Instale o scrcpy e as ferramentas da plataforma Android (adb) para espelhar seu celular.",
+    "Phone camera": "Câmera do celular",
+    "Stop camera": "Parar câmera",
+    "Screen mirroring and camera": "Espelhamento de tela e câmera",
+    "Mirror the screen and use the camera as a webcam, over USB or wireless debugging": "Espelha a tela e usa a câmera como webcam, por depuração USB ou sem fio",
+    "Use the camera as a webcam": "Usar a câmera como webcam",
+    "Camera": "Câmera",
+    "Front camera": "Câmera frontal",
+    "Rear camera": "Câmera traseira",
+    "Extra rotation": "Rotação extra",
+    "None": "Nenhuma",
     "Looking for Android devices…": "Procurando dispositivos Android…",
-    "Could not list Android devices. Check that adb is working and try again.":
-        "Não foi possível listar os dispositivos Android. Verifique se o adb está funcionando e tente novamente.",
-    "Unlock your phone and allow USB debugging, then reopen Mirror screen.":
-        "Desbloqueie o celular e permita a depuração USB. Depois, reabra Espelhar tela.",
-    "No authorized Android device found. Connect with USB debugging or Android Wireless debugging, "
-    "then reopen Mirror screen.":
-        "Nenhum dispositivo Android autorizado foi encontrado. Conecte com depuração USB ou depuração sem fio "
-        "do Android. Depois, reabra Espelhar tela.",
-    "Choose the Android device to view and control in a separate window.":
-        "Escolha o dispositivo Android para ver e controlar em uma janela separada.",
+    "Unlock your phone and allow USB debugging, then try again.": "Desbloqueie o celular e permita a depuração USB. Depois, tente de novo.",
+    "No Android device found. Enable USB debugging and connect a cable, or turn on Wireless debugging, then try again.": "Nenhum dispositivo Android encontrado. Ative a depuração USB e conecte um cabo, ou ligue a depuração sem fio. Depois, tente de novo.",
+    "Choose the Android device to view and control in a separate window.": "Escolha o dispositivo Android para ver e controlar em uma janela separada.",
     "Android device": "Dispositivo Android",
     "Start mirroring": "Iniciar espelhamento",
-    "Could not start scrcpy.": "Não foi possível iniciar o scrcpy.",
-    "Screen mirroring failed. Check the Android debugging connection and try again.":
-        "O espelhamento de tela falhou. Verifique a conexão de depuração do Android e tente novamente.",
+    "Start camera": "Iniciar câmera",
+    "Other apps can also use the camera as “Caelestia Phone Camera”.": "Outros apps também podem usar a câmera como “Caelestia Phone Camera”.",
+    "To use the camera in other apps too, run ./install.sh --webcam once.": "Para usar a câmera em outros apps também, rode ./install.sh --webcam uma vez.",
+    "To use the camera in other apps too, install scrcpy, android-tools, ffmpeg and v4l-utils.": "Para usar a câmera em outros apps também, instale scrcpy, android-tools, ffmpeg e v4l-utils.",
+    "Using the camera in other apps needs a 64-bit system.": "Usar a câmera em outros apps exige um sistema de 64 bits.",
+    "The phone is not connected over USB or wireless debugging.": "O celular não está conectado por depuração USB ou sem fio.",
+    "Screen mirroring failed. Check the Android debugging connection and try again.": "O espelhamento de tela falhou. Verifique a conexão de depuração do Android e tente novamente.",
+    "Phone camera failed. Android 12 or newer is needed, and the camera must be free.": "A câmera do celular falhou. É preciso Android 12 ou mais recente, e a câmera precisa estar livre.",
     "Messages": "Mensagens",
     "Unlock": "Desbloquear",
     "Lock": "Bloquear",

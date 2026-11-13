@@ -290,7 +290,7 @@ class Device:
         self.reload_plugins()
 
     def supported_plugins(self) -> list[str]:
-        return self.daemon.plugins_registry.for_capabilities(self.incoming, self.outgoing)
+        return self.daemon.plugins_registry.for_capabilities(self.incoming, self.outgoing, self.type)
 
     def plugin_enabled(self, plugin_id: str) -> bool:
         cls = self.daemon.plugins_registry.get(plugin_id)

@@ -9,7 +9,7 @@ from gi.repository import Adw, Gio, Gtk, Pango
 from ..i18n import _
 from ..utils import human_size
 from . import widgets as w
-from .mirroring import show_mirroring
+from . import mirroring
 
 
 class Overview(Gtk.ScrolledWindow):
@@ -107,9 +107,21 @@ class Overview(Gtk.ScrolledWindow):
             tiles.append(("folder_open", _("Browse files"), self._browse))
         if w.plugin_loaded(self.device, "remotecontrol") or w.plugin_loaded(self.device, "remotekeyboard"):
             tiles.append(("mouse", _("Remote input"), lambda: self.page.show_page("remote")))
-        if d["type"] in ("phone", "smartphone", "tablet"):
-            tiles.append(("screen_share", _("Mirror screen"), self._mirror_screen))
-            tiles.append(("photo_camera", _("Phone camera"), self._phone_camera))
+        android = d["state"].get("android", {})
+        if w.plugin_loaded(self.device, "android") and android.get("tools"):
+            tiles.append(
+                ("screen_share", _("Mirror screen"), lambda: mirroring.show(self.app, self.page.window, self.device))
+            )
+            if android.get("preview"):
+                tiles.append(("no_photography", _("Stop camera"), self._act("android", "stop_camera")))
+            else:
+                tiles.append(
+                    (
+                        "photo_camera",
+                        _("Phone camera"),
+                        lambda: mirroring.show(self.app, self.page.window, self.device, True),
+                    )
+                )
         if w.plugin_loaded(self.device, "sms"):
             tiles.append(("sms", _("Messages"), lambda: self.page.show_page("messages")))
         if w.plugin_loaded(self.device, "lockdevice"):
@@ -136,12 +148,6 @@ class Overview(Gtk.ScrolledWindow):
         self.tiles.remove_all()
         for icon, text, cb in tiles:
             self.tiles.append(w.Tile(icon, text, cb))
-
-    def _mirror_screen(self) -> None:
-        show_mirroring(self.app, self.page.window)
-
-    def _phone_camera(self) -> None:
-        show_mirroring(self.app, self.page.window, camera=True)
 
     def _extend_display(self) -> None:
         def done(result):
