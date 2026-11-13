@@ -9,6 +9,7 @@ from gi.repository import Adw, Gio, Gtk, Pango
 from ..i18n import _
 from ..utils import human_size
 from . import widgets as w
+from . import mirroring
 
 
 class Overview(Gtk.ScrolledWindow):
@@ -106,6 +107,21 @@ class Overview(Gtk.ScrolledWindow):
             tiles.append(("folder_open", _("Browse files"), self._browse))
         if w.plugin_loaded(self.device, "remotecontrol") or w.plugin_loaded(self.device, "remotekeyboard"):
             tiles.append(("mouse", _("Remote input"), lambda: self.page.show_page("remote")))
+        android = d["state"].get("android", {})
+        if w.plugin_loaded(self.device, "android") and android.get("tools"):
+            tiles.append(
+                ("screen_share", _("Mirror screen"), lambda: mirroring.show(self.app, self.page.window, self.device))
+            )
+            if android.get("preview"):
+                tiles.append(("no_photography", _("Stop camera"), self._act("android", "stop_camera")))
+            else:
+                tiles.append(
+                    (
+                        "photo_camera",
+                        _("Phone camera"),
+                        lambda: mirroring.show(self.app, self.page.window, self.device, True),
+                    )
+                )
         if w.plugin_loaded(self.device, "sms"):
             tiles.append(("sms", _("Messages"), lambda: self.page.show_page("messages")))
         if w.plugin_loaded(self.device, "lockdevice"):

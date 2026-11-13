@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from .android import AndroidPlugin
 from .base import Plugin
 from .battery import BatteryPlugin
 from .clipboard import ClipboardPlugin
@@ -35,6 +36,7 @@ from .telephony import TelephonyPlugin
 from .virtualmonitor import VirtualMonitorPlugin
 
 ALL_PLUGINS: list[type[Plugin]] = [
+    AndroidPlugin,
     BatteryPlugin,
     ClipboardPlugin,
     ConnectivityReportPlugin,
@@ -81,10 +83,11 @@ class Registry:
     def outgoing_capabilities(self) -> list[str]:
         return sorted({t for p in self.plugins.values() for t in p.outgoing})
 
-    def for_capabilities(self, incoming: set[str], outgoing: set[str]) -> list[str]:
-        """Plugins useful with a device that accepts `incoming` and sends `outgoing` packet types."""
+    def for_capabilities(self, incoming: set[str], outgoing: set[str], device_type: str = "") -> list[str]:
+        """Plugins useful with a `device_type` device that accepts `incoming` and sends `outgoing` packet types."""
         return sorted(
             pid
             for pid, p in self.plugins.items()
-            if any(t in outgoing for t in p.incoming) or any(t in incoming for t in p.outgoing)
+            if (any(t in outgoing for t in p.incoming) or any(t in incoming for t in p.outgoing))
+            and (not p.device_types or device_type in p.device_types)
         )

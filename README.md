@@ -27,6 +27,7 @@ libraries.
 - Ring the phone, or let the phone ring this computer
 - Choose whether the phone's sound plays on the phone or on this computer (over Bluetooth)
 - Phone as touchpad and keyboard; remote control and keyboard for the phone
+- Mirror and control the phone in a window, and use its camera as this computer's webcam
 - Sharing this computer's mouse and keyboard with the phone: move the cursor past a screen edge
 - Commands the phone can run on this computer
 - System volume, screen lock, presentation remote and drawing tablet
@@ -41,6 +42,7 @@ Dependencies on Arch Linux:
 ```sh
 sudo pacman -S --needed python-gobject libadwaita python-cryptography python-evdev wl-clipboard libpulse
 sudo pacman -S --needed sshfs gtk4-layer-shell   # optional: file browsing, presentation pointer
+sudo pacman -S --needed scrcpy android-tools android-udev   # optional: screen mirroring, phone camera
 sudo pacman -S --needed wayvnc freerdp           # optional: virtual monitor
 ```
 
@@ -61,6 +63,40 @@ sudo ufw allow 1714:1764/udp && sudo ufw allow 1714:1764/tcp
 ```
 
 Uninstall with `./install.sh --uninstall` (pairing data in `~/.config/caelestia-connect` is kept).
+
+## Screen mirroring and phone camera
+
+**Mirror screen** opens the phone in a window you can control with the mouse and keyboard, and **Phone
+camera** opens a camera preview that turns with the phone. Both use [scrcpy](https://github.com/Genymobile/scrcpy)
+over Android debugging, which is separate from KDE Connect pairing:
+
+- **USB:** enable *USB debugging* in the phone's Developer options, plug in a data cable and allow the prompt.
+- **Wi-Fi:** turn on *Wireless debugging* and pair once with `adb pair` (see
+  [scrcpy's guide](https://github.com/Genymobile/scrcpy/blob/master/doc/connection.md)). The phone is then
+  connected automatically when it announces itself on the network.
+
+The phone is recognised by its IP address or device name; if several devices are connected and none matches,
+you can pick one. The camera needs Android 12 or newer.
+
+### Webcam
+
+The phone camera can also be used by any application on this computer (Meet, OBS, browsers) as **Caelestia
+Phone Camera**. Set up the virtual camera once:
+
+```sh
+sudo pacman -S --needed scrcpy android-tools android-udev ffmpeg v4l-utils v4l2loopback-dkms linux-headers
+./install.sh --webcam
+```
+
+Use the headers package of your kernel (`linux-zen-headers`, `linux-lts-headers`...).
+
+This creates the device now and at every boot. From then on it works by itself while the phone is connected:
+the phone camera only turns on while an application is using the webcam, and pauses while the preview window
+is open. The camera, an extra rotation and turning the webcam off are in the device settings, under *Screen
+mirroring and camera*.
+
+If you already use v4l2loopback (for OBS, for example), `install.sh` leaves your configuration alone: add two
+devices labelled `Caelestia Phone Camera` and `Caelestia Camera Input` to it instead.
 
 ## Shell integration
 

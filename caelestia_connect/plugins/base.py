@@ -29,6 +29,8 @@ class Plugin:
     incoming: tuple[str, ...] = ()
     outgoing: tuple[str, ...] = ()
     enabled_by_default: bool = True
+    # Device types the plugin is offered to (empty: all)
+    device_types: tuple[str, ...] = ()
     # [{"key", "type": bool|choice|str|text|folder|file|commands, "label", "default", "choices"?}]
     settings_schema: list[dict[str, Any]] = []
 
