@@ -78,6 +78,8 @@ over Android debugging, which is separate from KDE Connect pairing:
 The phone is recognised by its IP address or device name; if several devices are connected and none matches,
 you can pick one. The camera needs Android 12 or newer.
 
+Screen mirroring and the phone camera were contributed by [ProSahil (@KingSahil)](https://github.com/KingSahil).
+
 ### Webcam
 
 The phone camera can also be used by any application on this computer (Meet, OBS, browsers) as **Caelestia
@@ -131,7 +133,7 @@ caelestia_connect/
   bluetooth.py        RFCOMM links over BlueZ, with KDE Connect's channel multiplexing
   device.py           pairing and packet routing
   plugins/            one module per feature
-  desktop/            notifications, MPRIS, clipboard, audio, input, power and session
+  desktop/            notifications, MPRIS, clipboard, audio, input, power, session, ADB and webcam
   ui/                 GTK4 app
   cli.py              command line client
 caelestia/            shell QML and integrate.py
@@ -141,7 +143,7 @@ tests/                fake Android peer, end-to-end test and demo
 
 ```sh
 ruff check . && ruff format --check .
-python3 tests/test_mdns.py && python3 tests/test_bluetooth.py
+for t in tests/test_*.py; do python3 "$t"; done   # unit tests
 python3 tests/run_integration.py <local-ip>   # stop caelestia-connectd and close the app first
 python3 tests/demo.py                         # demo phone, no real device needed
 ```
@@ -157,6 +159,12 @@ python3 tests/demo.py                         # demo phone, no real device neede
   Moving the pointer back past the phone's edge returns it; Ctrl+Alt+Esc always does.
 - **Virtual monitor** works between computers (the Android app has no support for it). Extending this
   computer's display needs `wayvnc`; showing another computer's virtual monitor needs FreeRDP, Remmina or KRDC.
+
+## Credits
+
+- [ProSahil (@KingSahil)](https://github.com/KingSahil): screen mirroring and the phone camera as a webcam.
+- [KDE Connect](https://invent.kde.org/network/kdeconnect-kde), whose protocol this app implements, and
+  [scrcpy](https://github.com/Genymobile/scrcpy), which powers screen mirroring and the camera.
 
 ## License
 
