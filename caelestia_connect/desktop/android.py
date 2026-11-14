@@ -111,7 +111,8 @@ async def camera_rotation(serial: str, facing: str) -> int:
             device = int(proposed[1])
         elif current:
             device = int(current[1]) * 90
-    return (device - sensor if facing == "front" else sensor + device) % 360
+    # The front camera is mirrored, so the phone's rotation counts the other way (Camera2 docs)
+    return (sensor - device if facing == "front" else sensor + device) % 360
 
 
 async def start_tool(*cmd: str) -> asyncio.subprocess.Process:

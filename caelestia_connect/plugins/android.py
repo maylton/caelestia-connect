@@ -9,6 +9,8 @@ from .base import Plugin, action
 
 # A process that exits this fast failed to start (no device, debugging not allowed...)
 STARTUP_CHECK = 2.5
+# Android takes a moment to free a camera after the previous user closed it
+CAMERA_RELEASE = 1.0
 # Only one phone can feed the webcam device at a time
 _webcam_owner: list[str] = []
 
@@ -168,11 +170,14 @@ class AndroidPlugin(Plugin):
         self.webcam.preview = True
         process = None
         try:
-            for _attempt in range(30):
-                if not self.webcam.streaming:
-                    break
-                await asyncio.sleep(0.1)
+            if self.webcam.camera_open:
+                for _attempt in range(50):
+                    await asyncio.sleep(0.1)
+                    if not self.webcam.camera_open:
+                        break
+                await asyncio.sleep(CAMERA_RELEASE)
             angle = None
+            retried = False
             while True:
                 facing, extra = self._camera_options()
                 wanted = (await android.camera_rotation(serial, facing) + extra) % 360
@@ -188,8 +193,14 @@ class AndroidPlugin(Plugin):
                         f"--window-title={self.device.name}",
                     )  # fmt: skip
                     if not started.done():
-                        started.set_result(await self._started(process))
-                        if not started.result():
+                        ok = await self._started(process)
+                        if not ok and not retried:
+                            # The camera may still have been closing: try once more
+                            retried, angle, process = True, None, None
+                            await asyncio.sleep(CAMERA_RELEASE)
+                            continue
+                        started.set_result(ok)
+                        if not ok:
                             return
                 await asyncio.sleep(1)
         finally:

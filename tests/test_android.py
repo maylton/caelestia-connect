@@ -43,6 +43,8 @@ elif args[:1] == ["-s"] and "device_name" in args:
 elif args[:1] == ["-s"] and "window" in args:
     print(f"mRotation={state.get('rotation', 0)}")
 elif args[:1] == ["-s"] and "media.camera" in args:
+    print("== Camera HAL device back\n  android.lens.facing (x):\n    [BACK ]")
+    print("  android.sensor.orientation (x):\n    [90 ]")
     print("== Camera HAL device front\n  android.lens.facing (x):\n    [FRONT ]")
     print("  android.sensor.orientation (x):\n    [270 ]")
 """
@@ -53,6 +55,10 @@ tmp = Path(sys.argv[0]).parent.parent
 with open(tmp / "calls", "a") as f:
     f.write(Path(sys.argv[0]).name + " " + " ".join(sys.argv[1:]) + f" pid={os.getpid()}\n")
 if (tmp / (Path(sys.argv[0]).name + ".fail")).exists():
+    sys.exit(1)
+once = tmp / (Path(sys.argv[0]).name + ".failonce")
+if once.exists():
+    once.unlink()
     sys.exit(1)
 time.sleep(600)
 """
@@ -85,6 +91,9 @@ def alive(pid: int) -> bool:
 setup_tools()
 from caelestia_connect.desktop import android, webcam  # noqa: E402
 from caelestia_connect.plugins import android as android_plugin  # noqa: E402
+
+# Never touch this machine's real v4l2loopback devices
+webcam.find_loopback = lambda _label: None
 
 
 class FakeConfig:
@@ -166,7 +175,7 @@ def test_camera_preview_turns_with_the_phone() -> None:
         assert await p.camera(facing="front") == {}
         assert p.setting("facing") == "front" and p.state()["preview"]
         first = calls("scrcpy")[-1]
-        assert "--video-source=camera" in first and "--display-orientation=90" in first, first
+        assert "--video-source=camera" in first and "--display-orientation=270" in first, first
         state = json.loads((TMP / "adb.json").read_text())
         state["rotation"] = 1  # phone turned to landscape
         (TMP / "adb.json").write_text(json.dumps(state))
@@ -177,6 +186,40 @@ def test_camera_preview_turns_with_the_phone() -> None:
         await p.stop_camera()
         assert not p.state()["preview"]
         assert not alive(int(second.rsplit("pid=", 1)[1]))
+
+    asyncio.run(run())
+
+
+def test_both_cameras_are_upright() -> None:
+    """The front sensor is mounted opposite to the back one: their pictures need turning the other way."""
+
+    async def run():
+        adb_state(devices={"ZY22": "device"}, rotation=0)
+        assert await android.camera_rotation("ZY22", "back") == 90
+        assert await android.camera_rotation("ZY22", "front") == 270
+        for facing, capture in (("back", 180), ("front", 0)):
+            LOG.write_text("")
+            cam = webcam.PhoneWebcam(lambda: _const("ZY22"), lambda f=facing: (f, 0), lambda: None)
+            cam.device = str(TMP / "video9")
+            task = asyncio.ensure_future(cam._camera())
+            await asyncio.sleep(0.8)
+            (line,) = calls("scrcpy")
+            assert f"--capture-orientation={capture}" in line, (facing, line)
+            cam.stop()
+            task.cancel()
+            await asyncio.gather(task, return_exceptions=True)
+
+    asyncio.run(run())
+
+
+def test_camera_preview_retries_while_the_camera_is_closing() -> None:
+    async def run():
+        adb_state(devices={"ZY22": "device"}, names={"ZY22": "Pixel 9"})
+        (TMP / "scrcpy.failonce").touch()
+        p = plugin()
+        assert await p.camera(facing="back") == {}
+        assert len(calls("scrcpy")) == 2 and p.state()["preview"]
+        await p.stop_camera()
 
     asyncio.run(run())
 

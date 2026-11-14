@@ -73,6 +73,7 @@ class PhoneWebcam:
         self.device = find_loopback(OUTPUT_LABEL)
         self.preview = False  # the camera window owns the phone camera
         self.streaming = False
+        self.camera_open = False  # scrcpy holds the phone camera
         self.error = ""
         self._task: asyncio.Task | None = None
         self._children: set[asyncio.subprocess.Process] = set()
@@ -187,6 +188,7 @@ class PhoneWebcam:
             f"--camera-size={WIDTH}x{HEIGHT}", "--no-audio", "--no-window", f"--capture-orientation={capture}",
         )  # fmt: skip
         fitting = find_loopback(INPUT_LABEL)
+        self.camera_open = True
         phone = await self._tool(
             *source, f"--v4l2-sink={fitting or self.device}", *([] if fitting else [f"--angle={extra}"])
         )
@@ -213,6 +215,7 @@ class PhoneWebcam:
         finally:
             await self._end(converter)
             await self._end(phone)
+            self.camera_open = False
 
     @staticmethod
     async def _wait_capturing(phone: asyncio.subprocess.Process, device: str) -> None:
